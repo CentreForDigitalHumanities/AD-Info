@@ -7,4 +7,7 @@ It also displays an extra message to say if the user is a member of the AllUsers
 - python3-ldap3
 - python3-kerberos
 - python3-gssapi
+- A linux machine with a configured Kerberos for soliscom
 (Should already be installed on the lab PC's)
+
+# Authentication
