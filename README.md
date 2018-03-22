@@ -11,3 +11,5 @@ It also displays an extra message to say if the user is a member of the AllUsers
 (Should already be installed on the lab PC's)
 
 # Authentication
+Authentication on the LDAP is done through a kerberos ticket. Thus, running this script as root is not advisable, as it 
+won't work.
