@@ -4,10 +4,19 @@ from ldap3 import Server, Connection, ALL, KERBEROS, SASL, LDAPKeyError
 import re
 import argparse
 
+DESCRIPTION = 'Looks up which groups a certain solis id is a member of'
+SOLIS_HELP = (
+    "The Solis ID of the user you want to check. You can also "
+    "search for a user by appending or prepending a '*' to "
+    "your input"
+    )
+# Address of 
+SERVER_ADDRESS = 'soliscom.uu.nl'
 
 def escape_ldap_input(string):
     """
-    This function escapes the user input such that all values are seen as text, not filter instructions.
+    This function escapes the user input such that all values are seen as text,
+    not filter instructions.
 
     TL;DR: prevents LDAP injection
 
@@ -32,12 +41,9 @@ def escape_ldap_input(string):
 
     return string.strip(" ")
 
-
 # Set up the argparser
-parser = argparse.ArgumentParser(description='Looks up which groups a certain solis id is a member of')
-parser.add_argument('id', metavar='Solis-ID', type=str, help="The Solis ID of the user you want to check. You can also "
-                                                             "search for a user by appending or prepending a '*' to "
-                                                             "your input")
+parser = argparse.ArgumentParser(description=DESCRIPTION)
+parser.add_argument('id', metavar='Solis-ID', type=str, help=SOLIS_HELP)
 
 # Get the to search CN
 cn = parser.parse_args().id
@@ -46,16 +52,27 @@ cn = escape_ldap_input(cn)
 # Constant for the allusers group
 ALL_USERS = u'GG_GW_UiL-OTS_Labs_AllUsers'
 
-# This regex is used to reduce the groups DN to the first element, and filter out non-UiL groups
+# This regex is used to reduce the groups DN to the first element, and
+# filter out non-UiL groups
 regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
 
 # Setup the connection through kerberos
-server = Server('soliscom.uu.nl', get_info=ALL, use_ssl=True)
-connection = Connection(server, auto_bind=True, authentication=SASL, sasl_mechanism=KERBEROS, sasl_credentials=(True,))
+server = Server(SERVER_ADDRESS, get_info=ALL, use_ssl=True)
+connection = Connection(
+    server,
+    auto_bind=True,
+    authentication=SASL,
+    sasl_mechanism=KERBEROS,
+    sasl_credentials=(True,)
+    )
 connection.start_tls()
 
 # Search for the given CN
-connection.search('dc=soliscom,dc=uu,dc=nl', '(cn={})'.format(cn), attributes=['cn', 'memberOf', 'displayName'])
+connection.search(
+    'dc=soliscom,dc=uu,dc=nl',
+    '(cn={})'.format(cn),
+    attributes=['cn', 'memberOf', 'displayName']
+    )
 
 # If there are no entries, display a warning
 if len(connection.entries) < 1:
@@ -63,11 +80,14 @@ if len(connection.entries) < 1:
 
 # Loop over the result entries
 for entry in connection.entries:
-    print("Solis-Id {} ({}) is member of the following UiL OTS groups:".format(entry.cn, entry.displayName))
+    print("Solis-Id {} ({}) is member of the following UiL OTS groups:".format(
+        entry.cn,
+        entry.displayName)
+        )
     in_all_users = False
 
-    # We store the groups here, instead of simply printing them when finding them so we can detect if there are no
-    # UiL groups.
+    # We store the groups here, instead of simply printing them
+    # when finding them so we can detect if there are no UiL groups.
     groups = []
 
     try:
@@ -81,7 +101,8 @@ for entry in connection.entries:
                 # Add it
                 groups.append(shortname[0])
 
-                # Check if this is the allUsers group. In that case we mark it as true
+                # Check if this is the allUsers group.
+                # In that case we mark it as true
                 if shortname[0] == ALL_USERS:
                     in_all_users = True
 
