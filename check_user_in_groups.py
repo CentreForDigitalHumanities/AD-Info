@@ -45,12 +45,12 @@ def escape_ldap_input(string):
 parser = argparse.ArgumentParser(description=DESCRIPTION)
 parser.add_argument('id', metavar='Solis-ID', type=str, help=SOLIS_HELP)
 
-# Get the to search CN
+# Get the to search Common Name generally abbreviated as CN 
 cn = parser.parse_args().id
 cn = escape_ldap_input(cn)
 
 # Constant for the allusers group
-ALL_USERS = u'GG_GW_UiL-OTS_Labs_AllUsers'
+ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
 
 # This regex is used to reduce the groups DN to the first element, and
 # filter out non-UiL groups
@@ -65,6 +65,8 @@ connection = Connection(
     sasl_mechanism=KERBEROS,
     sasl_credentials=(True,)
     )
+
+#force ssl connection active
 connection.start_tls()
 
 # Search for the given CN
@@ -75,15 +77,12 @@ connection.search(
     )
 
 # If there are no entries, display a warning
-if len(connection.entries) < 1:
+if not connection.entries:
     print('No user found for this solis ID!')
 
+GROUP_FMT = "Solis-Id {} ({}) is member of the following {} UiL OTS groups:"
 # Loop over the result entries
 for entry in connection.entries:
-    print("Solis-Id {} ({}) is member of the following UiL OTS groups:".format(
-        entry.cn,
-        entry.displayName)
-        )
     in_all_users = False
 
     # We store the groups here, instead of simply printing them
@@ -109,10 +108,17 @@ for entry in connection.entries:
     except LDAPKeyError:
         pass
 
+    print("-"*80)
+    print(
+        GROUP_FMT.format(
+            entry.cn,
+            entry.displayName,
+            len(groups)
+            )
+        )
+
     # If there are no groups, we print None
-    if len(groups) < 1:
-        print('None')
-    else:
+    if groups: 
         # Otherwise, print them all!
         for group in groups:
             print("- {}".format(group))
@@ -124,3 +130,6 @@ for entry in connection.entries:
         print('The user is already in the all users group')
     else:
         print('The user is NOT in the all user group')
+    print("-"*80)
+    if entry != connection.entries[len(connection.entries) - 1]:
+        print() 
