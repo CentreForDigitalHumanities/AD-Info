@@ -12,6 +12,9 @@ SOLIS_HELP = (
     )
 # Address of 
 SERVER_ADDRESS = 'soliscom.uu.nl'
+GROUP_FMT = "Solis-Id {} ({}) is member of the following {} UiL OTS groups:"
+ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
+
 
 def escape_ldap_input(string):
     """
@@ -41,6 +44,7 @@ def escape_ldap_input(string):
 
     return string.strip(" ")
 
+
 # Set up the argparser
 parser = argparse.ArgumentParser(description=DESCRIPTION)
 parser.add_argument('id', metavar='Solis-ID', type=str, help=SOLIS_HELP)
@@ -50,7 +54,6 @@ cn = parser.parse_args().id
 cn = escape_ldap_input(cn)
 
 # Constant for the allusers group
-ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
 
 # This regex is used to reduce the groups DN to the first element, and
 # filter out non-UiL groups
@@ -66,7 +69,7 @@ connection = Connection(
     sasl_credentials=(True,)
     )
 
-#force ssl connection active
+# force ssl connection active
 connection.start_tls()
 
 # Search for the given CN
@@ -80,7 +83,6 @@ connection.search(
 if not connection.entries:
     print('No user found for this solis ID!')
 
-GROUP_FMT = "Solis-Id {} ({}) is member of the following {} UiL OTS groups:"
 # Loop over the result entries
 for entry in connection.entries:
     in_all_users = False
