@@ -113,12 +113,6 @@ for entry in connection.entries:
     try:
         # Loop over all groups
         for group in entry.memberOf:
-            # If we want to show all groups, just add this group and move to
-            # the next
-            if show_all_groups:
-                groups.append(group)
-                continue
-
             # Regex filter them
             shortname = regex.findall(group, re.IGNORECASE)
 
@@ -131,6 +125,9 @@ for entry in connection.entries:
                 # In that case we mark it as true
                 if shortname[0] == ALL_USERS:
                     in_all_users = True
+            # If we want to show all groups, add this group anyway.
+            elif show_all_groups:
+                groups.append(group)
 
     except LDAPKeyError:
         pass
