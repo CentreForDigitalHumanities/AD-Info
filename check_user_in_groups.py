@@ -33,6 +33,20 @@ def print_user_attribute(data, label, attribute):
         print("{}".format(label))
 
 
+def print_error(string: str):
+    """
+    Print errors with a nice red color. (Or whatever color is used for FAIL)
+    """
+    print("\033[91m{}\x1b[0m".format(string))
+
+
+def print_ok(string: str):
+    """
+    Print errors with a nice green color. (Or whatever color is used for OKGREEN)
+    """
+    print("\033[92m{}\x1b[0m".format(string))
+
+
 def escape_ldap_input(string):
     """
     This function escapes the user input such that all values are seen as text,
@@ -110,9 +124,9 @@ connection.search(
 # If there are no entries, display a warning
 if not connection.entries:
     if use_email:
-        print('No user found with this email address!')
+        print_error('No user found with this email address!')
     else:
-        print('No user found for this solis ID!')
+        print_error('No user found for this solis ID!')
 
 # Loop over the result entries
 for entry in connection.entries:
@@ -175,9 +189,9 @@ for entry in connection.entries:
     print()
     # Info message to say if this user is in the allUsers group
     if in_all_users:
-        print('The user is already in the all users group')
+        print_ok('The user is already in the all users group')
     else:
-        print('The user is NOT in the all user group')
+        print_error('The user is NOT in the all user group')
     print("-"*80)
     if entry != connection.entries[len(connection.entries) - 1]:
         print() 
