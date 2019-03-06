@@ -118,8 +118,16 @@ connection.start_tls()
 connection.search(
     'dc=soliscom,dc=uu,dc=nl',
     search_query,
-    attributes=['cn', 'memberOf', 'displayName', 'mail', 'title']
-    )
+    attributes=[
+        'cn',
+        'memberOf',
+        'displayName',
+        'mail',
+        'title',
+        'department',
+        'telephoneNumber'
+    ]
+)
 
 # If there are no entries, display a warning
 if not connection.entries:
@@ -164,6 +172,8 @@ for entry in connection.entries:
     print_user_attribute(entry, 'Solis-ID:\t', 'cn')
     print_user_attribute(entry, 'Name:\t\t', 'displayName')
     print_user_attribute(entry, 'Email\t\t', 'mail')
+    print_user_attribute(entry, 'Phone:\t\t', 'telephoneNumber')
+    print_user_attribute(entry, 'Department:\t', 'department')
     print_user_attribute(entry, 'Position:\t', 'title')
 
     # Newline for readability
