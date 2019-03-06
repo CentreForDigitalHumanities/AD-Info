@@ -18,10 +18,19 @@ ALL_HELP = (
     "This option can be used to view all the groups the user is a member of, "
     "instead of only the UiL-OTS groups."
 )
-# Address of 
+# Address of
 SERVER_ADDRESS = 'soliscom.uu.nl'
-GROUP_FMT = "Solis-Id {} ({}) is member of the following {} UiL OTS groups:"
+GROUP_FMT = "Solis-ID {} is member of the following {} UiL OTS groups:"
 ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
+
+
+def print_user_attribute(data, label, attribute):
+    """This function prints a given attribute, and handles any LDAPKeyErrors"""
+    try:
+        value = getattr(data, attribute)
+        print("{}{}".format(label, value))
+    except LDAPKeyError:
+        print("{}".format(label))
 
 
 def escape_ldap_input(string):
@@ -95,7 +104,7 @@ connection.start_tls()
 connection.search(
     'dc=soliscom,dc=uu,dc=nl',
     search_query,
-    attributes=['cn', 'memberOf', 'displayName']
+    attributes=['cn', 'memberOf', 'displayName', 'mail', 'title']
     )
 
 # If there are no entries, display a warning
@@ -133,10 +142,20 @@ for entry in connection.entries:
         pass
 
     print("-"*80)
+    # Print user info
+    print("User info:")
+    print_user_attribute(entry, 'Solis-ID:\t', 'cn')
+    print_user_attribute(entry, 'Name:\t\t', 'displayName')
+    print_user_attribute(entry, 'Email"\t\t', 'mail')
+    print_user_attribute(entry, 'Position:\t', 'title')
+
+    # Newline for readability
+    print()
+
+    # Start printing groups
     print(
         GROUP_FMT.format(
             entry.cn,
-            entry.displayName,
             len(groups)
             )
         )
@@ -146,6 +165,8 @@ for entry in connection.entries:
         # Otherwise, print them all!
         for group in groups:
             print("- {}".format(group))
+    else:
+        print('- None')
 
     # Newline
     print()
