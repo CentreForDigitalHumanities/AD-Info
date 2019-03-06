@@ -146,7 +146,7 @@ for entry in connection.entries:
     print("User info:")
     print_user_attribute(entry, 'Solis-ID:\t', 'cn')
     print_user_attribute(entry, 'Name:\t\t', 'displayName')
-    print_user_attribute(entry, 'Email"\t\t', 'mail')
+    print_user_attribute(entry, 'Email\t\t', 'mail')
     print_user_attribute(entry, 'Position:\t', 'title')
 
     # Newline for readability
