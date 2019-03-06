@@ -109,7 +109,10 @@ connection.search(
 
 # If there are no entries, display a warning
 if not connection.entries:
-    print('No user found for this solis ID!')
+    if use_email:
+        print('No user found with this email address!')
+    else:
+        print('No user found for this solis ID!')
 
 # Loop over the result entries
 for entry in connection.entries:
