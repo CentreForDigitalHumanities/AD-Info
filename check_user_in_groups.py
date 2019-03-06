@@ -4,12 +4,20 @@ from ldap3 import Server, Connection, ALL, KERBEROS, SASL, LDAPKeyError
 import re
 import argparse
 
-DESCRIPTION = 'Looks up which groups a certain solis id is a member of'
+DESCRIPTION = 'Looks up which groups a certain user is a member of'
 SOLIS_HELP = (
-    "The Solis ID of the user you want to check. You can also "
+    "The Solis ID/Email of the user you want to check. You can also "
     "search for a user by appending or prepending a '*' to "
-    "your input"
+    "your input."
     )
+EMAIL_HELP = (
+    "This option can be used to search for/locate a user using his/her "
+    "email-address instead of a Solis-ID."
+)
+ALL_HELP = (
+    "This option can be used to view all the groups the user is a member of, "
+    "instead of only the UiL-OTS groups."
+)
 # Address of 
 SERVER_ADDRESS = 'soliscom.uu.nl'
 GROUP_FMT = "Solis-Id {} ({}) is member of the following {} UiL OTS groups:"
@@ -47,13 +55,24 @@ def escape_ldap_input(string):
 
 # Set up the argparser
 parser = argparse.ArgumentParser(description=DESCRIPTION)
-parser.add_argument('id', metavar='Solis-ID', type=str, help=SOLIS_HELP)
+parser.add_argument('id', metavar='Search query', type=str, help=SOLIS_HELP)
+parser.add_argument('-e', '--email', help=EMAIL_HELP, action='store_true')
+parser.add_argument('-a', '--all', help=ALL_HELP, action='store_true')
 
-# Get the to search Common Name generally abbreviated as CN 
-cn = parser.parse_args().id
-cn = escape_ldap_input(cn)
+# Get the run config from the argparser
+arguments = parser.parse_args()
+search_query_argument = arguments.id
+use_email = arguments.email
+show_all_groups = arguments.all
 
-# Constant for the allusers group
+# Escape the search query argument, to prevent LDAP injections.
+search_query_argument = escape_ldap_input(search_query_argument)
+
+# Build the correct search query
+if use_email:
+    search_query = '(mail={})'.format(search_query_argument)
+else:
+    search_query = '(cn={})'.format(search_query_argument)
 
 # This regex is used to reduce the groups DN to the first element, and
 # filter out non-UiL groups
@@ -75,7 +94,7 @@ connection.start_tls()
 # Search for the given CN
 connection.search(
     'dc=soliscom,dc=uu,dc=nl',
-    '(cn={})'.format(cn),
+    search_query,
     attributes=['cn', 'memberOf', 'displayName']
     )
 
@@ -94,6 +113,12 @@ for entry in connection.entries:
     try:
         # Loop over all groups
         for group in entry.memberOf:
+            # If we want to show all groups, just add this group and move to
+            # the next
+            if show_all_groups:
+                groups.append(group)
+                continue
+
             # Regex filter them
             shortname = regex.findall(group, re.IGNORECASE)
 
