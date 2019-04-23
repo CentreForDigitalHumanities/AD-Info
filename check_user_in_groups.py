@@ -99,7 +99,11 @@ else:
 
 # This regex is used to reduce the groups DN to the first element, and
 # filter out non-UiL groups
-regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
+main_regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
+
+# This regex is used to find the ITS-made groups for the new ITS DFS project
+# folders (which follow a different naming convention)
+its_regex = re.compile(r'.*?=(.*?R_FS_Research-GW-Projects.*?),.*')
 
 # Setup the connection through kerberos
 server = Server(SERVER_ADDRESS, get_info=ALL, use_ssl=True)
@@ -148,19 +152,26 @@ for entry in connection.entries:
         # Loop over all groups
         for group in entry.memberOf:
             # Regex filter them
-            shortname = regex.findall(group, re.IGNORECASE)
+            shortname_main = main_regex.findall(group, re.IGNORECASE)
+            shortname_its = its_regex.findall(group, re.IGNORECASE)
 
-            # If we found something
-            if len(shortname) == 1:
-                # Add it
-                groups.append(shortname[0])
+            # To check if we already added this one, used to prevent
+            # duplicates when using --all
+            added = False
 
-                # Check if this is the allUsers group.
-                # In that case we mark it as true
-                if shortname[0] == ALL_USERS:
-                    in_all_users = True
+            for shortname in [shortname_main, shortname_its]:
+                # If we found something
+                if len(shortname) == 1:
+                    # Add it
+                    groups.append(shortname[0])
+                    added = True
+
+                    # Check if this is the allUsers group.
+                    # In that case we mark it as true
+                    if shortname[0] == ALL_USERS:
+                        in_all_users = True
             # If we want to show all groups, add this group anyway.
-            elif show_all_groups:
+            if not added and show_all_groups:
                 groups.append(group)
 
     except LDAPKeyError:
