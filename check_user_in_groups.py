@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
-from ldap3 import Server, Connection, ALL, KERBEROS, SASL, LDAPKeyError
+from ldap3 import Server, Connection, ALL, SIMPLE
+from ldap3.core.exceptions import LDAPKeyError
 import re
 import argparse
+import getpass
 
 DESCRIPTION = 'Looks up which groups a certain user is a member of'
 SOLIS_HELP = (
@@ -18,13 +20,22 @@ ALL_HELP = (
     "This option can be used to view all the groups the user is a member of, "
     "instead of only the UiL-OTS groups."
 )
+
+SIMPLE_AUTH_HELP = (
+    "This will force simple-auth over kerberos auth. (Simple auth means using "
+    "username and password.)"
+)
+USERNAME_HELP = (
+    "This option can be used with simple auth to provide a username. Implies "
+    "-s."
+)
 # Address of
 SERVER_ADDRESS = 'soliscom.uu.nl'
 GROUP_FMT = "Solis-ID {} is member of the following {} UiL OTS groups:"
 ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
 
 
-def print_user_attribute(data, label, attribute):
+def print_user_attribute(data, label, attribute) -> None:
     """This function prints a given attribute, and handles any LDAPKeyErrors"""
     try:
         value = getattr(data, attribute)
@@ -33,21 +44,21 @@ def print_user_attribute(data, label, attribute):
         print("{}".format(label))
 
 
-def print_error(string: str):
+def print_error(string: str) -> None:
     """
     Print errors with a nice red color. (Or whatever color is used for FAIL)
     """
     print("\033[91m{}\x1b[0m".format(string))
 
 
-def print_ok(string: str):
+def print_ok(string: str) -> None:
     """
     Print errors with a nice green color. (Or whatever color is used for OKGREEN)
     """
     print("\033[92m{}\x1b[0m".format(string))
 
 
-def escape_ldap_input(string):
+def escape_ldap_input(string: str) -> str:
     """
     This function escapes the user input such that all values are seen as text,
     not filter instructions.
@@ -76,11 +87,114 @@ def escape_ldap_input(string):
     return string.strip(" ")
 
 
+def get_connection(argparse_arguments) -> Connection:
+    """This method will create our connection object.
+
+    It will try to use kerberos first, falling back to simple auth when kerberos
+    auth is not available. This can be overriden by --username or --simple-auth
+
+    :param argparse_arguments: Info from argparse
+    :return:
+    """
+    default_args = {
+        'auto_bind': True
+    }
+
+    # Always use simple auth if a username is specified
+    if argparse_arguments.username or argparse_arguments.simple_auth:
+        connection_args = get_simple_auth_connection_args(
+            default_args,
+            argparse_arguments
+        )
+    else:
+        try:
+            # First try to get the Kerberos auth
+            connection_args = get_kerberos_connection_args(default_args)
+        except ModuleNotFoundError:
+            # No Kerberos found, fall back to simple auth
+            connection_args = get_simple_auth_connection_args(
+                default_args,
+                argparse_arguments
+            )
+
+    # Create the connection
+    return Connection(
+        server,
+        **connection_args
+    )
+
+
+def get_kerberos_connection_args(default_args: dict) -> dict:
+    """Builds a dict with ldap connection arguments for kerberos auth.
+
+    :param default_args: Default connection arguments
+    :raises ModuleNotFound if kerberos related dependencies aren't installed.
+    :return: The connection args
+    """
+    # These imports fail if kerberos is not installed
+    from ldap3 import KERBEROS, SASL
+    import gssapi
+
+    default_args.update({
+        'authentication':   SASL,
+        'sasl_mechanism':   KERBEROS,
+        'sasl_credentials': (True,),
+    })
+
+    return default_args
+
+
+def get_simple_auth_connection_args(default_args, argparse_arguments):
+    """Builds a dict with ldap connection arguments for simple auth.
+
+    :param default_args: Default connection arguments
+    :param argparse_arguments: Info from argparse
+    :return: The connection args
+    """
+    user, password = get_simple_auth_cred(argparse_arguments)
+
+    default_args.update({
+        'authentication': SIMPLE,
+        'user':           user,
+        'password':       password
+    })
+
+    return default_args
+
+
+def get_simple_auth_cred(argparse_arguments) -> tuple:
+    """This function returns simple auth credentials.
+
+    Username will be taken from the argparse arguments if present, otherwise
+    the script will prompt for it.
+
+    Password is always prompted.
+
+    :param argparse_arguments: Info from argparse
+    :return: Username and Password
+    """
+    # Use the username argument if supplied, otherwise prompt for the username
+    user = argparse_arguments.username or input('Username: ')
+
+    # Usernames should be @soliscom.uu.nl, but for human convinience we append
+    # it if it's not present
+    if not user.endswith('@soliscom.uu.nl'):
+        user = "{}@soliscom.uu.nl".format(user)
+
+    # Use getpass to get the password
+    password = getpass.getpass()
+
+    return user, password
+
+
 # Set up the argparser
 parser = argparse.ArgumentParser(description=DESCRIPTION)
 parser.add_argument('id', metavar='Search query', type=str, help=SOLIS_HELP)
 parser.add_argument('-e', '--email', help=EMAIL_HELP, action='store_true')
 parser.add_argument('-a', '--all', help=ALL_HELP, action='store_true')
+parser.add_argument('-s', '--simple-auth', help=SIMPLE_AUTH_HELP,
+                    action='store_true')
+parser.add_argument('-u', '--username', help=USERNAME_HELP)
 
 # Get the run config from the argparser
 arguments = parser.parse_args()
@@ -105,17 +219,11 @@ main_regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
 # folders (which follow a different naming convention)
 its_regex = re.compile(r'.*?=(.*?R_FS_Research-GW-Projects.*?),.*')
 
-# Setup the connection through kerberos
+# Setup the connection
 server = Server(SERVER_ADDRESS, get_info=ALL, use_ssl=True)
-connection = Connection(
-    server,
-    auto_bind=True,
-    authentication=SASL,
-    sasl_mechanism=KERBEROS,
-    sasl_credentials=(True,)
-    )
+connection = get_connection(arguments)
 
-# force ssl connection active
+# Force ssl connection active
 connection.start_tls()
 
 # Search for the given CN
