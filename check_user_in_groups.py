@@ -1,7 +1,11 @@
 #!/usr/bin/python3
 
 from ldap3 import Server, Connection, ALL, SIMPLE
-from ldap3.core.exceptions import LDAPKeyError
+# In newer versions Exceptions are located in: ldap3.core.exceptions
+try:
+    from ldap3 import LDAPKeyError
+except ImportError as e:
+    from ldap3.core.exceptions import LDAPKeyError
 import re
 import argparse
 import getpass
