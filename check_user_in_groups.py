@@ -38,8 +38,8 @@ SOLIS_HELP = (
 
 GROUP_QUERY_HELP = (
     "The name of the group you want to check. You can also "
-    "search for a user by appending or prepending a '*' to "
-    "your input. If omitted, it will print a list of all UiL OTS groups"
+    "search for a group by providing just a part of it's name. If this "
+    "argument is omitted, it will print a list of all UiL OTS groups"
 )
 
 EMAIL_HELP = (
@@ -369,8 +369,8 @@ def _build_group_search_query(argparse_arguments) -> str:
         else:
             # If we don't, add the prefixes for less garbage
             # This is intended for searching using incomplete names
-            search_query = "(|(cn=*GW_UiL{0}*)(" \
-                           "cn=*R_FS_{0}*_C))".format(arg)
+            search_query = "(|(cn=*GW_UiL*{0}*)(" \
+                           "cn=*R_FS_*{0}*_C))".format(arg)
     else:
         # If no search query is given, use this query to find all UiL OTS groups
         search_query = "(|(cn=*GW_UiL*)(cn=*R_FS_Research-GW-Projects*_C))"
