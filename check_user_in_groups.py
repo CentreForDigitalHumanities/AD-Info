@@ -12,9 +12,9 @@ import argparse
 import getpass
 
 DESCRIPTION = (
-    'Queries the AD for certain info. Note: authentication options are always '
-    'available, but not shown on sub-commands. These flags must also be '
-    'supplied BEFORE the command.'
+    'Queries the AD for certain info. Note: authentication and format options '
+    'are always available, but not shown on sub-commands. These flags must '
+    'also be supplied BEFORE the command.'
 )
 
 PERSON_DESCRIPTION = (
@@ -49,6 +49,11 @@ EMAIL_HELP = (
 ALL_HELP = (
     "This option can be used to view all the groups the user is a member of, "
     "instead of only the UiL-OTS groups."
+)
+
+NO_FORMAT_HELP = (
+    "By default, group names will be shortened by removing it's LDAP "
+    "hierarchy. This option will force this behaviour off."
 )
 
 SIMPLE_AUTH_HELP = (
@@ -277,7 +282,10 @@ def _search_user(connection, argparse_arguments) -> None:
                     # If we found something
                     if len(shortname) == 1:
                         # Add it
-                        groups.append(shortname[0])
+                        if argparse_arguments.no_format:
+                            groups.append(group)
+                        else:
+                            groups.append(shortname[0])
                         added = True
 
                         # Check if this is the allUsers group.
@@ -422,6 +430,15 @@ g1.add_argument(
     action='store_true'
 )
 g1.add_argument('-u', '--username', help=USERNAME_HELP)
+
+# Add output arguments
+g1 = parser.add_argument_group('output')
+g1.add_argument(
+    '-n',
+    '--no-format',
+    help=NO_FORMAT_HELP,
+    action='store_true'
+)
 
 # Add sub-parser for person search
 p_parser = subparsers.add_parser(
