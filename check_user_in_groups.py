@@ -42,6 +42,13 @@ GROUP_QUERY_HELP = (
     "argument is omitted, it will print a list of all UiL OTS groups"
 )
 
+GROUP_RAW_HELP = (
+    "By default, a UiL specific prefix will be added to your search query if "
+    "none is detected. This flag will override that behaviour. This will "
+    "allow you to search for any AD group. Note: this has some performance "
+    "implications, as it will effectively search everything."
+)
+
 EMAIL_HELP = (
     "This option can be used to search for/locate a user using his/her "
     "email-address instead of a Solis-ID."
@@ -374,7 +381,7 @@ def _build_group_search_query(argparse_arguments) -> str:
         # If we already have the right prefix, create a simple query
         # This is intended for when the entire CN is given as a search query
         if arg.startswith('GW_UIL') or arg.startswith('GG_GW_UiL') or \
-           arg.startswith('R_FS'):
+           arg.startswith('R_FS') or argparse_arguments.raw_search:
             search_query = '(cn={})'.format(arg)
         else:
             # If we don't, add the prefixes for less garbage
@@ -465,6 +472,12 @@ g_parser.add_argument(
     type=str,
     help=GROUP_QUERY_HELP,
     nargs='?'
+)
+g_parser.add_argument(
+    '-r',
+    '--raw-search',
+    help=GROUP_RAW_HELP,
+    action='store_true'
 )
 
 # Get the run config from the argparser
