@@ -302,6 +302,7 @@ def _search_user(connection, argparse_arguments) -> None:
         print("-" * 80)
         # Print user info
         print("User info:")
+        print_user_attribute(entry, 'DN:\t\t', 'entry_dn')
         print_user_attribute(entry, 'Solis-ID:\t', 'cn')
         print_user_attribute(entry, 'Name:\t\t', 'displayName')
         print_user_attribute(entry, 'Email\t\t', 'mail')
@@ -392,6 +393,7 @@ def _print_group_details(entries) -> None:
     for i, entry in enumerate(entries):
         print("-" * 80)
 
+        print_user_attribute(entry, 'DN:\t', 'entry_dn')
         print_user_attribute(entry, 'Group:\t', 'cn')
 
         print('Members:')
