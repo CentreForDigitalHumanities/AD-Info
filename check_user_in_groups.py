@@ -373,7 +373,8 @@ def _build_group_search_query(argparse_arguments) -> str:
         arg = escape_ldap_input(arg)
         # If we already have the right prefix, create a simple query
         # This is intended for when the entire CN is given as a search query
-        if arg.startswith('GW_UIL') or arg.startswith('R_FS'):
+        if arg.startswith('GW_UIL') or arg.startswith('GG_GW_UiL') or \
+           arg.startswith('R_FS'):
             search_query = '(cn={})'.format(arg)
         else:
             # If we don't, add the prefixes for less garbage
