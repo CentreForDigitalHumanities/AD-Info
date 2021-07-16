@@ -1,6 +1,7 @@
 #!/usr/bin/python3
+from typing import List, Set, Tuple
 
-from ldap3 import Server, Connection, ALL, SIMPLE
+from ldap3 import Entry, Server, Connection, ALL, SIMPLE
 
 # In newer versions Exceptions are located in: ldap3.core.exceptions
 try:
@@ -29,6 +30,13 @@ GROUP_DESCRIPTION = (
 )
 
 GROUP_HELP = 'Search group info'
+
+STALE_DESCRIPTION = (
+    'Runs through all project folder groups and gives several different '
+    'warnings for folders that might need cleaning up in some way or another'
+)
+
+STALE_HELP = 'Analyse project folders for abandoned folders'
 
 SOLIS_HELP = (
     "The Solis ID/Email of the user you want to check. You can also "
@@ -424,6 +432,84 @@ def _print_group_list(entries) -> None:
     print("\nTotal: {}".format(len(entries)))
 
 
+def _search_stale_users_or_groups(connection, argparse_arguments) -> None:
+    """This function handles the group command"""
+
+    # Search for the given CN
+    connection.search(
+        'OU=FS,OU=Resource,OU=NonProvisioned,OU=Groups,OU=UU,DC=soliscom,DC=uu,DC=nl',
+        "(cn=R_FS_Research-GW-Projects-*)",
+        attributes=[
+            'cn',
+            'member',
+        ]
+    )
+
+    if not connection.entries:
+        print_error('No groups found. This should be impossible!')
+        exit(1)
+
+    entries = _group_groups(connection.entries)
+    _process_groups(entries)
+
+
+def _group_groups(entries: List[Entry]) -> List[Tuple[str, Entry, Entry]]:
+    entries = sorted(entries)
+    groups = []
+
+    for i in range(0, len(entries), 2):
+        c = entries[i]
+        r = entries[i + 1]
+
+        # Check if what we think is the _C group is actually the _C group
+        if not c.cn[0].endswith("_C"):
+            print_error("Could not group groups, first group is not change "
+                        "group")
+            exit(1)
+
+        # Get the name of both groups
+        name = c.cn[0][:-2]
+        # Ensure that we have corresponding groups
+        if not r.cn[0] == f"{name}_R":
+            print_error("Could not group groups, read only group did not "
+                        "match change group")
+            exit(1)
+
+        groups.append((name, c, r))
+
+    return groups
+
+
+def _process_groups(groups: List[Tuple[str, Entry, Entry]]) -> None:
+    for name, change, read_only in groups:
+        reasons = []
+
+        if len(change.member) == 0 and len(read_only.member) == 0:
+            reasons.append("Group has no members")
+
+        reasons.extend(_check_stale_users(change))
+        reasons.extend(_check_stale_users(read_only))
+
+        if len(reasons) != 0:
+            print("-" * 80)
+            print(f"Name:\t {name}\n")
+            print("Users:")
+            print("Change rights:")
+            print(*[f"- {m}" for m in change.member], sep="\n")
+            print("Read-only rights:")
+            print(*[f"- {m}" for m in read_only.member], sep="\n")
+            print("Reasons:")
+            print(*[f"- {reason}\n" for reason in reasons], sep="\n")
+
+
+def _check_stale_users(group: Entry) -> List[str]:
+    reasons = []
+    for member in group.member:
+        if "Guest" in member:
+            reasons.append(f"Group contains a Guest account:\n{member}")
+
+    return reasons
+
 # Set up the argparser
 parser = argparse.ArgumentParser(description=DESCRIPTION)
 subparsers = parser.add_subparsers(
@@ -480,6 +566,12 @@ g_parser.add_argument(
     action='store_true'
 )
 
+stale_parser = subparsers.add_parser(
+    'stale',
+    help=STALE_HELP,
+    description=STALE_DESCRIPTION
+)
+
 # Get the run config from the argparser
 arguments = parser.parse_args()
 
@@ -505,5 +597,7 @@ if arguments.subparser_name == 'person':
     _search_user(connection, arguments)
 elif arguments.subparser_name == 'group':
     _search_group(connection, arguments)
+elif arguments.subparser_name == 'stale':
+    _search_stale_users_or_groups(connection, arguments)
 else:
     print_error('No command given')
