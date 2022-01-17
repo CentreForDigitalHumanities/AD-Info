@@ -416,7 +416,7 @@ def _build_group_search_query(argparse_arguments) -> str:
             # If we don't, add the prefixes for less garbage
             # This is intended for searching using incomplete names
             search_query = "(|(cn=*GW_UiL*{0}*)(" \
-                           "cn=*R_FS_*{0}*_C))".format(arg)
+                           "cn=*R_FS_Research-GW-Project*{0}*_C))".format(arg)
     else:
         # If no search query is given, use this query to find all UiL OTS groups
         search_query = "(|(cn=*GW_UiL*)(cn=*R_FS_Research-GW-Projects*_C))"
