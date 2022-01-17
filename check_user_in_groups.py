@@ -38,6 +38,27 @@ STALE_DESCRIPTION = (
 
 STALE_HELP = 'Analyse project folders for abandoned folders'
 
+CUSTOM_DESCRIPTION = (
+    'Allows you to run custom LDAP queries. WARNING! BE CAREFULL! This really '
+    'isn\'t a great idea unless you really need to do something manually!\n '
+    'Additionally, this only allows search queries, for safety.'
+)
+
+CUSTOM_HELP = 'Run a custom LDAP query'
+
+CUSTOM_QUERY_HELP = (
+    "The LDAP query to run"
+)
+
+CUSTOM_BASE_HELP = (
+    "The base DN to start searching from. Defaults to 'dc=soliscom,dc=uu,dc=nl'"
+)
+
+CUSTOM_ATTR_HELP = (
+    'The entry attributes to retrieve from the LDAP. Note: to retrieve '
+    'multiple attributes, separate them with spaces. Defaults to [\'CN\']'
+)
+
 SOLIS_HELP = (
     "The Solis ID/Email of the user you want to check. You can also "
     "search for a user by appending or prepending a '*' to "
@@ -511,6 +532,23 @@ def _check_stale_users(group: Entry) -> List[str]:
     return reasons
 
 
+def _search_custom(connection, argparse_arguments) -> None:
+    """This function handles the custom command"""
+    print(argparse_arguments)
+    # Search for the given CN
+    connection.search(
+        argparse_arguments.base,
+        argparse_arguments.query,
+        attributes=argparse_arguments.attr,
+    )
+
+    if not connection.entries:
+        print_error('No entries found.')
+        exit(1)
+
+    print(connection.entries)
+
+
 if __name__ == "__main__":
     # Set up the argparser
     parser = argparse.ArgumentParser(description=DESCRIPTION)
@@ -574,6 +612,36 @@ if __name__ == "__main__":
         description=STALE_DESCRIPTION
     )
 
+    custom_parser = subparsers.add_parser(
+        'custom',
+        help=CUSTOM_HELP,
+        description=CUSTOM_DESCRIPTION
+    )
+
+    custom_parser.add_argument(
+        'query',
+        metavar='query',
+        type=str,
+        help=CUSTOM_QUERY_HELP,
+    )
+
+    custom_parser.add_argument(
+        'base',
+        metavar='base',
+        type=str,
+        help=CUSTOM_BASE_HELP,
+        default='dc=soliscom,dc=uu,dc=nl',
+        nargs='?'
+    )
+
+    custom_parser.add_argument(
+        '--attr',
+        type=str,
+        help=CUSTOM_ATTR_HELP,
+        default=['cn'],
+        nargs='*'
+    )
+
     # Get the run config from the argparser
     arguments = parser.parse_args()
 
@@ -601,5 +669,7 @@ if __name__ == "__main__":
         _search_group(connection, arguments)
     elif arguments.subparser_name == 'stale':
         _search_stale_users_or_groups(connection, arguments)
+    elif arguments.subparser_name == 'custom':
+        _search_custom(connection, arguments)
     else:
         parser.print_help()
