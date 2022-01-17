@@ -600,4 +600,4 @@ elif arguments.subparser_name == 'group':
 elif arguments.subparser_name == 'stale':
     _search_stale_users_or_groups(connection, arguments)
 else:
-    print_error('No command given')
+    parser.print_help()
