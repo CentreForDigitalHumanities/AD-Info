@@ -510,94 +510,96 @@ def _check_stale_users(group: Entry) -> List[str]:
 
     return reasons
 
-# Set up the argparser
-parser = argparse.ArgumentParser(description=DESCRIPTION)
-subparsers = parser.add_subparsers(
-    title='commands',
-    dest='subparser_name'
-)
 
-# Add authentication arguments
-g1 = parser.add_argument_group('authentication')
-g1.add_argument(
-    '-s',
-    '--simple-auth',
-    help=SIMPLE_AUTH_HELP,
-    action='store_true'
-)
-g1.add_argument('-u', '--username', help=USERNAME_HELP)
+if __name__ == "__main__":
+    # Set up the argparser
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    subparsers = parser.add_subparsers(
+        title='commands',
+        dest='subparser_name'
+    )
 
-# Add output arguments
-g1 = parser.add_argument_group('output')
-g1.add_argument(
-    '-n',
-    '--no-format',
-    help=NO_FORMAT_HELP,
-    action='store_true'
-)
+    # Add authentication arguments
+    g1 = parser.add_argument_group('authentication')
+    g1.add_argument(
+        '-s',
+        '--simple-auth',
+        help=SIMPLE_AUTH_HELP,
+        action='store_true'
+    )
+    g1.add_argument('-u', '--username', help=USERNAME_HELP)
 
-# Add sub-parser for person search
-p_parser = subparsers.add_parser(
-    'person',
-    help=PERSON_HELP,
-    description=PERSON_DESCRIPTION
-)
-p_parser.add_argument('id', metavar='Search query', type=str, help=SOLIS_HELP)
-p_parser.add_argument('-e', '--email', help=EMAIL_HELP, action='store_true')
-p_parser.add_argument('-a', '--all', help=ALL_HELP, action='store_true')
+    # Add output arguments
+    g1 = parser.add_argument_group('output')
+    g1.add_argument(
+        '-n',
+        '--no-format',
+        help=NO_FORMAT_HELP,
+        action='store_true'
+    )
 
-# Add sub-parser for group search
-g_parser = subparsers.add_parser(
-    'group',
-    help=GROUP_HELP,
-    description=GROUP_DESCRIPTION
-)
-g_parser.add_argument(
-    'id',
-    metavar='Search query',
-    type=str,
-    help=GROUP_QUERY_HELP,
-    nargs='?'
-)
-g_parser.add_argument(
-    '-r',
-    '--raw-search',
-    help=GROUP_RAW_HELP,
-    action='store_true'
-)
+    # Add sub-parser for person search
+    p_parser = subparsers.add_parser(
+        'person',
+        help=PERSON_HELP,
+        description=PERSON_DESCRIPTION
+    )
+    p_parser.add_argument('id', metavar='Search query', type=str, help=SOLIS_HELP)
+    p_parser.add_argument('-e', '--email', help=EMAIL_HELP, action='store_true')
+    p_parser.add_argument('-a', '--all', help=ALL_HELP, action='store_true')
 
-stale_parser = subparsers.add_parser(
-    'stale',
-    help=STALE_HELP,
-    description=STALE_DESCRIPTION
-)
+    # Add sub-parser for group search
+    g_parser = subparsers.add_parser(
+        'group',
+        help=GROUP_HELP,
+        description=GROUP_DESCRIPTION
+    )
+    g_parser.add_argument(
+        'id',
+        metavar='Search query',
+        type=str,
+        help=GROUP_QUERY_HELP,
+        nargs='?'
+    )
+    g_parser.add_argument(
+        '-r',
+        '--raw-search',
+        help=GROUP_RAW_HELP,
+        action='store_true'
+    )
 
-# Get the run config from the argparser
-arguments = parser.parse_args()
+    stale_parser = subparsers.add_parser(
+        'stale',
+        help=STALE_HELP,
+        description=STALE_DESCRIPTION
+    )
 
-# Setup the server
-server = Server(SERVER_ADDRESS, get_info=ALL, use_ssl=True)
+    # Get the run config from the argparser
+    arguments = parser.parse_args()
 
-# Setup the connection
-connection = get_connection(arguments)
+    # Setup the server
+    server = Server(SERVER_ADDRESS, get_info=ALL, use_ssl=True)
 
-# Force ssl connection active
-connection.start_tls()
+    # Setup the connection
+    connection = get_connection(arguments)
 
-# This regex is used to reduce the groups DN to the first element, and
-# filter out non-UiL groups
-main_regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
+    # Force ssl connection active
+    connection.start_tls()
 
-# This regex is used to find the ITS-made groups for the new ITS DFS project
-# folders (which follow a different naming convention)
-its_regex = re.compile(r'.*?=(.*?R_FS_Research-GW-Projects.*?),.*')
+    # This regex is used to reduce the groups DN to the first element, and
+    # filter out non-UiL groups
+    main_regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
 
-# Check which command was given and invoke the corresponding function
-if arguments.subparser_name == 'person':
-    _search_user(connection, arguments)
-elif arguments.subparser_name == 'group':
-    _search_group(connection, arguments)
-elif arguments.subparser_name == 'stale':
-    _search_stale_users_or_groups(connection, arguments)
-else:
-    parser.print_help()
+    # This regex is used to find the ITS-made groups for the new ITS DFS project
+    # folders (which follow a different naming convention)
+    its_regex = re.compile(r'.*?=(.*?R_FS_Research-GW-Projects.*?),.*')
+
+    # Check which command was given and invoke the corresponding function
+    if arguments.subparser_name == 'person':
+        _search_user(connection, arguments)
+    elif arguments.subparser_name == 'group':
+        _search_group(connection, arguments)
+    elif arguments.subparser_name == 'stale':
+        _search_stale_users_or_groups(connection, arguments)
+    else:
+        parser.print_help()
