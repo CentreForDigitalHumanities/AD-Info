@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from typing import List, Set, Tuple
 
 from ldap3 import Entry, Server, Connection, ALL, SIMPLE
