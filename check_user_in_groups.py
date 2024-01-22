@@ -3,6 +3,12 @@ from typing import List, Set, Tuple
 
 from ldap3 import Entry, Server, Connection, ALL, SIMPLE
 
+try:
+    from gssapi.raw.exceptions import MissingCredentialsError
+except ImportError:
+    # Provide a fallback shim if gssapi is not installed
+    class MissingCredentialsError(Exception): pass
+
 # In newer versions Exceptions are located in: ldap3.core.exceptions
 try:
     from ldap3 import LDAPKeyError
@@ -181,7 +187,11 @@ def get_connection(argparse_arguments) -> Connection:
         try:
             # First try to get the Kerberos auth
             connection_args = get_kerberos_connection_args(default_args)
-        except ModuleNotFoundError:
+
+            # Return the connection here, so we can catch any missing
+            # credentials exception for the fallback
+            return Connection(server, **connection_args)
+        except (ModuleNotFoundError, MissingCredentialsError):
             # No Kerberos found, fall back to simple auth
             connection_args = get_simple_auth_connection_args(
                 default_args,
