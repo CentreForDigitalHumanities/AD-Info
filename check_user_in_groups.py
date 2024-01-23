@@ -121,6 +121,22 @@ def print_user_attribute(data, label, attribute) -> None:
         print("{}".format(label))
 
 
+def print_proxy_addresses(data) -> None:
+    """This function prints a given attribute, and handles any LDAPKeyErrors"""
+    print('E-mail aliasses:')
+
+    try:
+        value = getattr(data, 'proxyAddresses')
+        actual_emails = []
+        for address in value:
+            if address.startswith('smtp:') and address.endswith('uu.nl'):
+                actual_emails.append(address[5:])
+        for email in actual_emails:
+            print('  -', email)
+    except LDAPKeyError:
+        pass
+
+
 def print_error(string: str) -> None:
     """
     Print errors with a nice red color. (Or whatever color is used for FAIL)
@@ -294,7 +310,8 @@ def _search_user(connection, argparse_arguments) -> None:
             'mail',
             'title',
             'department',
-            'telephoneNumber'
+            'telephoneNumber',
+            'proxyAddresses'
         ]
     )
 
@@ -355,6 +372,7 @@ def _search_user(connection, argparse_arguments) -> None:
         print_user_attribute(entry, 'Phone:\t\t', 'telephoneNumber')
         print_user_attribute(entry, 'Department:\t', 'department')
         print_user_attribute(entry, 'Position:\t', 'title')
+        print_proxy_addresses(entry)
 
         # Newline for readability
         print()
