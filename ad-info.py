@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import List, Set, Tuple
+from typing import List, Tuple
 
 from ldap3 import Entry, Server, Connection, ALL, SIMPLE
 
@@ -31,8 +31,8 @@ PERSON_DESCRIPTION = (
 PERSON_HELP = 'Search account info'
 
 GROUP_DESCRIPTION = (
-    'Queries the AD for group info for the given group. Can also show all UiL '
-    'OTS groups if no group was supplied'
+    'Queries the AD for group info for the given group. Can also show all ILS '
+    'groups if no group was supplied'
 )
 
 GROUP_HELP = 'Search group info'
@@ -74,11 +74,11 @@ SOLIS_HELP = (
 GROUP_QUERY_HELP = (
     "The name of the group you want to check. You can also "
     "search for a group by providing just a part of it's name. If this "
-    "argument is omitted, it will print a list of all UiL OTS groups"
+    "argument is omitted, it will print a list of all ILS groups"
 )
 
 GROUP_RAW_HELP = (
-    "By default, a UiL specific prefix will be added to your search query if "
+    "By default, a ILS specific prefix will be added to your search query if "
     "none is detected. This flag will override that behaviour. This will "
     "allow you to search for any AD group. Note: this has some performance "
     "implications, as it will effectively search everything."
@@ -90,7 +90,7 @@ EMAIL_HELP = (
 )
 ALL_HELP = (
     "This option can be used to view all the groups the user is a member of, "
-    "instead of only the UiL-OTS groups."
+    "instead of only the ILS groups."
 )
 
 NO_FORMAT_HELP = (
@@ -108,7 +108,7 @@ USERNAME_HELP = (
 )
 # Address of
 SERVER_ADDRESS = 'soliscom.uu.nl'
-GROUP_FMT = "Solis-ID {} is member of the following {} UiL OTS groups:"
+GROUP_FMT = "Solis-ID {} is member of the following {} ILS groups:"
 ALL_USERS = 'GG_GW_UiL-OTS_Labs_AllUsers'
 
 
@@ -683,7 +683,7 @@ if __name__ == "__main__":
     connection.start_tls()
 
     # This regex is used to reduce the groups DN to the first element, and
-    # filter out non-UiL groups
+    # filter out non-ILS groups
     main_regex = re.compile(r'.*?=(.*?GW_UiL.*?),.*')
 
     # This regex is used to find the ITS-made groups for the new ITS DFS project
